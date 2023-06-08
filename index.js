@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require ('express');
 const app = express();
 require('dotenv').config();
@@ -25,8 +25,48 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
+const studentCollection = client.db("yogaDb").collection('students');
 
+
+// students collection api
+app.get('/students', async (req, res) => {
+    const result = await studentCollection.find().toArray();
+    res.send(result);
+})
+app.post('/students', async (req, res) => {
+    const student = req.body;
+    const query = { email: student.email}
+    const existingStudent = await studentCollection.findOne(query);
+    if(existingStudent){
+        return res.send({message : 'user already exists'});
+    }
+    const result = await studentCollection.insertOne(student);
+    res.send(result);
+})
+
+app.patch('/student/admin/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id)};
+    const updateDoc = { 
+        $set: {
+            role: 'admin'
+        },
+    };
+    const result = await studentCollection.updateOne(filter, updateDoc);
+    res.send(result);
+})
+app.patch('/student/instructor/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id)};
+    const updateDoc = { 
+        $set: {
+            role: 'instructor'
+        },
+    };
+    const result = await studentCollection.updateOne(filter, updateDoc);
+    res.send(result);
+})
 
 
     // Send a ping to confirm a successful connection
@@ -40,7 +80,7 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/get', (req, res) => {
+app.get('/', (req, res) => {
     res.send("treaty yoga is running");
 })
 
