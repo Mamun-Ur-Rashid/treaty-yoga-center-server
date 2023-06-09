@@ -67,7 +67,16 @@ app.post('/students', async (req, res) => {
     const result = await studentCollection.insertOne(student);
     res.send(result);
 })
-
+// admin check
+app.get('/students/admin/:email', verifyJWT, async(req, res) => {
+    const email = req.params.email;
+    if(req.decoded.email !== email){
+        res.send({admin: false})
+    }
+    const query = {email: email}
+    const student = { admin: student?.role === 'admin'};
+    res.send(result);
+})
 app.patch('/student/admin/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
