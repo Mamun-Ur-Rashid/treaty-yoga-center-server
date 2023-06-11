@@ -44,40 +44,44 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-const studentCollection = client.db("yogaDb").collection('students');
+const userCollection = client.db("yogaDb").collection('users');
+const classCollection = client.db('yogaDb').collection('classes');
+const selectedClassCollection = client.db('yogaDb').collection('selectedClasses');
 
 // jwt token
 app.post('/jwt', (req, res) => {
-    const student = req.body;
-    const token = jwt.sign(student, process.env.access_token_secret, { expiresIn: '1h'})
+    const user = req.body;
+    const token = jwt.sign(user, process.env.access_token_secret, { expiresIn: '1h'})
     res.send({token});
 })
-// students collection api
-app.get('/students', async (req, res) => {
-    const result = await studentCollection.find().toArray();
+// users collection api
+app.get('/users', async (req, res) => {
+    const result = await userCollection.find().toArray();
     res.send(result);
 })
-app.post('/students', async (req, res) => {
-    const student = req.body;
-    const query = { email: student.email}
-    const existingStudent = await studentCollection.findOne(query);
-    if(existingStudent){
+app.post('/users', async (req, res) => {
+    const user = req.body;
+    console.log(user);
+    const query = { email: user.email}
+    const existingUser = await userCollection.findOne(query);
+    if(existingUser){
         return res.send({message : 'user already exists'});
     }
-    const result = await studentCollection.insertOne(student);
+    const result = await userCollection.insertOne(user);
     res.send(result);
 })
-// admin check
-app.get('/students/admin/:email', verifyJWT, async(req, res) => {
+// // admin check
+app.get('/users/admin/:email', verifyJWT, async(req, res) => {
     const email = req.params.email;
     if(req.decoded.email !== email){
-        res.send({admin: false})
+       res.send({admin: false})
     }
     const query = {email: email}
-    const student = { admin: student?.role === 'admin'};
+    const user = await userCollection.findOne(query);
+    const result = { admin: user?.role === 'admin'};
     res.send(result);
 })
-app.patch('/student/admin/:id', async (req, res) => {
+app.patch('/users/admin/:id', verifyJWT, async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
     const updateDoc = { 
@@ -85,20 +89,65 @@ app.patch('/student/admin/:id', async (req, res) => {
             role: 'admin'
         },
     };
-    const result = await studentCollection.updateOne(filter, updateDoc);
+    const result = await userCollection.updateOne(filter, updateDoc);
     res.send(result);
 })
-app.patch('/student/instructor/:id', async (req, res) => {
+// instructor check
+app.get('/users/instructor/:email', verifyJWT, async(req, res) => {
+    const email = req.params.email;
+    if(req.decoded.email !== email){
+        res.send({instructor: false});
+    }
+    const query = {email: email}
+    const user = await userCollection.findOne(query);
+    const result = { instructor: user?.role === 'instructor'};
+    return res.send(result);
+
+})
+app.patch('/users/instructor/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
     const updateDoc = { 
         $set: {
-            role: 'instructor'
+            role: 'instructor',
         },
     };
-    const result = await studentCollection.updateOne(filter, updateDoc);
+    const result = await userCollection.updateOne(filter, updateDoc);
     res.send(result);
 })
+// class api
+app.get('/classes', async(req, res) => {
+    const result = await classCollection.find().toArray();
+    res.send(result);
+})
+app.post('/classes', verifyJWT, async (req, res) => {
+    const newClass = req.body;
+    console.log(newClass);
+    const result = await classCollection.insertOne(newClass);
+    res.send(result);
+})
+// // user selected class
+app.get('/selectedClasses/:email', verifyJWT, async (req, res) =>{
+    const result = await selectedClassCollection.find({email : req.params.email}).toArray();
+    res.send(result);
+})
+app.post('/selectedClasses', async (req, res) => {
+    const selectedClass = req.body;
+    console.log(selectedClass);
+    const result = await selectedClassCollection.insertOne(selectedClass);
+    res.send(result); 
+})
+app.delete('/selectedClasses/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id)};
+    const result = await selectedClassCollection.deleteOne(query);
+    res.send(result);
+})
+app.get('/myClasses/:email', async (req, res) => {
+    const result = await classCollection.find({email: req.params.email}).toArray();
+    res.send(result);
+})
+
 
 
     // Send a ping to confirm a successful connection
