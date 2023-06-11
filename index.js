@@ -104,6 +104,12 @@ app.get('/users/instructor/:email', verifyJWT, async(req, res) => {
     return res.send(result);
 
 })
+app.get('/instructors', async(req, res) => {
+   const query = { role: 'instructor'}
+   const result = await userCollection.find(query).toArray();
+   res.send(result);
+    
+})
 app.patch('/users/instructor/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
