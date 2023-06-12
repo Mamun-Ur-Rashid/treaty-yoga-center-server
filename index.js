@@ -117,7 +117,7 @@ app.get('/users/instructor/:email', verifyJWT, async(req, res) => {
 
 })
 // popular instructor 
-app.get('/popularInstructors', verifyJWT, async (req, res) =>{
+app.get('/popularInstructors', async (req, res) =>{
     const query = { role: 'instructor'};
     const result = await userCollection.find(query).limit(6).toArray();
     res.send(result);
@@ -163,7 +163,7 @@ app.get('/classes/approve', verifyJWT, async (req, res) => {
     res.send(result);
 })
 // popular classes
-app.get('/popularClasses', verifyJWT, async(req, res) =>{
+app.get('/popularClasses', async(req, res) =>{
     const query = {status : 'approve'};
     const result = await classCollection.find(query).limit(6).toArray();
     res.send(result);
@@ -238,6 +238,11 @@ app.post('/payments',verifyJWT, async(req, res) => {
     const deleteResult = await selectedClassCollection.deleteOne(query);
     
     res.send({insertResult,deleteResult});
+})
+// enrolled class api
+app.get('/payments/:email', verifyJWT, async(req, res) =>{
+    const result = await paymentCollection.find({email: req.params.email}).toArray();
+    res.send(result);
 })
 
 
