@@ -200,11 +200,11 @@ app.post('/create-payment-intent',verifyJWT, async(req, res) =>{
     })
 })
 // payment api
-// app.post('/payment/:id',verifyJWT, async(req, res) => {
-//     const payment = req.body;
-//     const result = await paymentCollection.insertOne(payment);
-//     res.send(result);
-// })
+app.post('/payment/:id',verifyJWT, async(req, res) => {
+    const payment = req.body;
+    const result = await paymentCollection.insertOne(payment);
+    res.send(result);
+})
 
 
 
