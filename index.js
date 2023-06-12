@@ -67,7 +67,7 @@ const verifyAdmin = async (req, res, next) =>{
     next();
 }
 // users collection api
-app.get('/users',verifyJWT, async (req, res) => {
+app.get('/users',verifyJWT,verifyAdmin, async (req, res) => {
     const result = await userCollection.find().toArray();
     res.send(result);
 })
@@ -134,7 +134,7 @@ app.patch('/users/instructor/:id', async (req, res) => {
     res.send(result);
 })
 // class api
-app.patch('/classes/:id', async (req, res) => {
+app.patch('/classes/:id',verifyJWT, async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
     const updateDoc = {
@@ -146,7 +146,7 @@ app.patch('/classes/:id', async (req, res) => {
     res.send(result);
 })
 // manage classes api
-app.get('/classes', async(req, res) => {
+app.get('/classes',verifyJWT, async(req, res) => {
     const result = await classCollection.find().toArray();
     res.send(result);
 })
@@ -154,6 +154,12 @@ app.get('/classes', async(req, res) => {
 app.get('/classes/approve', verifyJWT, async (req, res) => {
     const query = { status: 'approve' }
     const result = await classCollection.find(query).toArray();
+    res.send(result);
+})
+// popular classes
+app.get('/popularClasses', verifyJWT, async(req, res) =>{
+    const query = {status : 'approve'};
+    const result = await classCollection.find(query).limit(6).toArray();
     res.send(result);
 })
 app.post('/classes', verifyJWT, async (req, res) => {
@@ -180,10 +186,11 @@ app.get('/selectedClasses', async (req, res) => {
     const result = await selectedClassCollection.find(query).toArray();
     res.send(result);
 })
-app.get('/selectedClasses/:id', async(req, res) => {
+app.get('/selectedClass/:id', async(req, res) => {
     const id = req.params.id;
     const query = { _id: new ObjectId(id)};
-    const result = await selectedClassCollection.find(query).toArray();
+    const result = await selectedClassCollection.findOne(query);
+    console.log(result);
     res.send(result)
 })
 app.post('/selectedClasses', async (req, res) => {
@@ -220,8 +227,9 @@ app.post('/payments',verifyJWT, async(req, res) => {
     const payment = req.body;
     const insertResult = await paymentCollection.insertOne(payment);
 
-    const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
-    const deleteResult = await selectedClassCollection.deleteMany(query);
+    const id = req.params.id;
+    const query = {_id: new ObjectId(id)}
+    const deleteResult = await selectedClassCollection.deleteOne(query);
     
     res.send({insertResult,deleteResult});
 })
