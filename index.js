@@ -116,6 +116,12 @@ app.get('/users/instructor/:email', verifyJWT, async(req, res) => {
     return res.send(result);
 
 })
+// popular instructor 
+app.get('/popularInstructors', verifyJWT, async (req, res) =>{
+    const query = { role: 'instructor'};
+    const result = await userCollection.find(query).limit(6).toArray();
+    res.send(result);
+})
 app.get('/instructors', async(req, res) => {
    const query = { role: 'instructor'}
    const result = await userCollection.find(query).toArray();
