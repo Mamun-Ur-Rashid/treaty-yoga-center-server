@@ -4,6 +4,7 @@ const app = express();
 require('dotenv').config();
 var jwt = require('jsonwebtoken');
 const cors = require('cors');
+const stripe = require('stripe')(process.env.payment_secret_key)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -47,6 +48,7 @@ async function run() {
 const userCollection = client.db("yogaDb").collection('users');
 const classCollection = client.db('yogaDb').collection('classes');
 const selectedClassCollection = client.db('yogaDb').collection('selectedClasses');
+const paymentCollection = client.db('yogaDb').collection('payments');
 
 // jwt token
 app.post('/jwt', (req, res) => {
@@ -55,7 +57,7 @@ app.post('/jwt', (req, res) => {
     res.send({token});
 })
 // users collection api
-app.get('/users', async (req, res) => {
+app.get('/users',verifyJWT, async (req, res) => {
     const result = await userCollection.find().toArray();
     res.send(result);
 })
@@ -74,7 +76,7 @@ app.post('/users', async (req, res) => {
 app.get('/users/admin/:email', verifyJWT, async(req, res) => {
     const email = req.params.email;
     if(req.decoded.email !== email){
-       res.send({admin: false})
+       return res.send({admin: false})
     }
     const query = {email: email}
     const user = await userCollection.findOne(query);
@@ -96,7 +98,7 @@ app.patch('/users/admin/:id', verifyJWT, async (req, res) => {
 app.get('/users/instructor/:email', verifyJWT, async(req, res) => {
     const email = req.params.email;
     if(req.decoded.email !== email){
-        res.send({instructor: false});
+        return res.send({instructor: false});
     }
     const query = {email: email}
     const user = await userCollection.findOne(query);
@@ -122,8 +124,26 @@ app.patch('/users/instructor/:id', async (req, res) => {
     res.send(result);
 })
 // class api
+app.patch('/classes/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id)};
+    const updateDoc = {
+        $set: {
+            status: 'approve',
+        }
+    }
+    const result = await classCollection.updateOne(filter, updateDoc);
+    res.send(result);
+})
+// manage classes api
 app.get('/classes', async(req, res) => {
     const result = await classCollection.find().toArray();
+    res.send(result);
+})
+// approve class api for class page
+app.get('/classes/approve', verifyJWT, async (req, res) => {
+    const query = { status: 'approve' }
+    const result = await classCollection.find(query).toArray();
     res.send(result);
 })
 app.post('/classes', verifyJWT, async (req, res) => {
@@ -133,8 +153,21 @@ app.post('/classes', verifyJWT, async (req, res) => {
     res.send(result);
 })
 // // user selected class
-app.get('/selectedClasses/:email', verifyJWT, async (req, res) =>{
+app.get('/selectedClasses/:email', async (req, res) =>{
     const result = await selectedClassCollection.find({email : req.params.email}).toArray();
+    res.send(result);
+})
+app.get('/selectedClasses', async (req, res) => {
+    const email = req.query.email;
+    if(!email){
+        return res.send([]);
+    }
+    const decodedEmail = req.decoded.email;
+    if(email !== decodedEmail){
+        return res.status(403).send({error : true, message: 'forbidden access'})
+    }
+    const query = { email: email}
+    const result = await selectedClassCollection.find(query).toArray();
     res.send(result);
 })
 app.post('/selectedClasses', async (req, res) => {
@@ -153,6 +186,25 @@ app.get('/myClasses/:email', async (req, res) => {
     const result = await classCollection.find({email: req.params.email}).toArray();
     res.send(result);
 })
+// create payment intent
+app.post('/create-payment-intent',verifyJWT, async(req, res) =>{
+    const {price} = req.body;
+    const amount = parseInt(price * 100);
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency : 'usd',
+        payment_method_types: ['card']
+    })
+    res.send({
+        clientSecret : paymentIntent.client_secret
+    })
+})
+// payment api
+// app.post('/payment/:id',verifyJWT, async(req, res) => {
+//     const payment = req.body;
+//     const result = await paymentCollection.insertOne(payment);
+//     res.send(result);
+// })
 
 
 
