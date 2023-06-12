@@ -56,6 +56,16 @@ app.post('/jwt', (req, res) => {
     const token = jwt.sign(user, process.env.access_token_secret, { expiresIn: '1h'})
     res.send({token});
 })
+// verify admin
+const verifyAdmin = async (req, res, next) =>{
+    const email = req.decoded.email;
+    const query = {email: email}
+    const user = await userCollection.findOne(query);
+    if(user?.role !== 'admin'){
+        return res.status(403).send({error : true, message: 'forbidden message'});
+    }
+    next();
+}
 // users collection api
 app.get('/users',verifyJWT, async (req, res) => {
     const result = await userCollection.find().toArray();
@@ -170,6 +180,12 @@ app.get('/selectedClasses', async (req, res) => {
     const result = await selectedClassCollection.find(query).toArray();
     res.send(result);
 })
+app.get('/selectedClasses/:id', async(req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id)};
+    const result = await selectedClassCollection.find(query).toArray();
+    res.send(result)
+})
 app.post('/selectedClasses', async (req, res) => {
     const selectedClass = req.body;
     console.log(selectedClass);
@@ -200,11 +216,16 @@ app.post('/create-payment-intent',verifyJWT, async(req, res) =>{
     })
 })
 // payment api
-app.post('/payment/:id',verifyJWT, async(req, res) => {
+app.post('/payments',verifyJWT, async(req, res) => {
     const payment = req.body;
-    const result = await paymentCollection.insertOne(payment);
-    res.send(result);
+    const insertResult = await paymentCollection.insertOne(payment);
+
+    const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
+    const deleteResult = await selectedClassCollection.deleteMany(query);
+    
+    res.send({insertResult,deleteResult});
 })
+
 
 
 
