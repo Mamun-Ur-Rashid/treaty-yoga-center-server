@@ -19,7 +19,7 @@ const verifyJWT = (req, res, next) => {
     }
     // baerer token
     const token = authorization.split(' ')[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.access_token_secret, (err, decoded) => {
       if(err){
         return res.status(401).send({error: true, message: 'unauthorized access'})
       }
@@ -44,7 +44,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 const userCollection = client.db("yogaDb").collection('users');
 const classCollection = client.db('yogaDb').collection('classes');
 const selectedClassCollection = client.db('yogaDb').collection('selectedClasses');
@@ -151,13 +151,25 @@ app.patch('/classes/:id',verifyJWT, async (req, res) => {
     const result = await classCollection.updateOne(filter, updateDoc);
     res.send(result);
 })
+// status deny
+app.patch('/class/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = {_id: new ObjectId(id)};
+    const updateDoc ={
+        $set: {
+            status: 'deny'
+        }
+    }
+    const result = await classCollection.updateOne(filter, updateDoc);
+    res.send(result);
+})
 // manage classes api
 app.get('/classes',verifyJWT, async(req, res) => {
     const result = await classCollection.find().toArray();
     res.send(result);
 })
 // approve class api for class page
-app.get('/classes/approve', verifyJWT, async (req, res) => {
+app.get('/classes/approve', async (req, res) => {
     const query = { status: 'approve' }
     const result = await classCollection.find(query).toArray();
     res.send(result);
