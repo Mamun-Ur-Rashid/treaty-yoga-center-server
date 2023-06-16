@@ -140,7 +140,7 @@ app.patch('/users/instructor/:id', async (req, res) => {
     res.send(result);
 })
 // class api
-app.patch('/classes/:id',verifyJWT, async (req, res) => {
+app.patch('/classes/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
     const updateDoc = {
@@ -214,7 +214,12 @@ app.get('/selectedClass/:id', async(req, res) => {
 app.post('/selectedClasses', async (req, res) => {
     const selectedClass = req.body;
     console.log(selectedClass);
-    const result = await selectedClassCollection.insertOne(selectedClass);
+    const updateDoc= {
+        $set : {
+            paymentStatus: false
+        }
+    }
+    const result = await selectedClassCollection.insertOne(selectedClass,updateDoc);
     res.send(result); 
 })
 app.delete('/selectedClasses/:id', async (req, res) => {
@@ -244,16 +249,15 @@ app.post('/create-payment-intent',verifyJWT, async(req, res) =>{
 app.post('/payments',verifyJWT, async(req, res) => {
     const payment = req.body;
     const insertResult = await paymentCollection.insertOne(payment);
-
-    const id = req.params.id;
-    const query = {_id: new ObjectId(id)}
-    const deleteResult = await selectedClassCollection.deleteOne(query);
     
-    res.send({insertResult,deleteResult});
+    res.send(insertResult);
 })
 // enrolled class api
 app.get('/payments/:email', verifyJWT, async(req, res) =>{
-    const result = await paymentCollection.find({email: req.params.email}).toArray();
+    const email = req.params.email;
+    const filter = {email: email};
+    const query = {paymentStatus: 'true'};
+    const result = await paymentCollection.find(filter, query).toArray();
     res.send(result);
 })
 
