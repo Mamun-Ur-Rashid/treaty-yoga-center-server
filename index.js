@@ -93,7 +93,7 @@ app.get('/users/admin/:email', verifyJWT, async(req, res) => {
     const result = { admin: user?.role === 'admin'};
     res.send(result);
 })
-app.patch('/users/admin/:id', verifyJWT, async (req, res) => {
+app.patch('/users/admin/:id', async (req, res) => {
     const id = req.params.id;
     const filter = { _id: new ObjectId(id)};
     const updateDoc = { 
@@ -248,19 +248,61 @@ app.post('/create-payment-intent',verifyJWT, async(req, res) =>{
 // payment api
 app.post('/payments',verifyJWT, async(req, res) => {
     const payment = req.body;
-    const insertResult = await paymentCollection.insertOne(payment);
+    const query = { _id: new ObjectId(payment.classId)};
+    try {
+        const insertResult = await paymentCollection.insertOne(payment);
+        const deleteResult = await selectedClassCollection.deleteOne(query);
+        const updateResult = await classCollection.updateOne(
+            {_id: new ObjectId(payment.classId) },
+            { $inc: {enrolledStudent: 1, 
+                availableSeats: -1}}
+        );
+        res.status(200).send({insertResult, deleteResult, updateResult});
+    }
+    catch(error) {
+        res.status(500).send({error: 'An error occurred during payment processing '});
+    }
+    // const insertResult = await paymentCollection.insertOne(payment);
+    // const query = { _id: new ObjectId(payment.classId)};
+    // const delateResult = await selectedClassCollection.deleteOne(query);
     
-    res.send(insertResult);
-})
+    // const classId = payment.classId;
+    // const filter = { _id: new ObjectId(classId)};
+    // const updateDoc = {
+    //     $inc: {
+    //         enrolledClass: 1,
+    //         availableSeats: -1
+    //     }
+    // };
+    // const result = await classCollection.updateOne(filter, updateDoc);
+    // res.send({insertResult, result,delateResult});
+});
 // enrolled class api
-app.get('/payments/:email', verifyJWT, async(req, res) =>{
-    const email = req.params.email;
-    const filter = {email: email};
-    const query = {paymentStatus: 'true'};
-    const result = await paymentCollection.find(filter, query).toArray();
-    res.send(result);
-})
-
+// app.get('/payments/:email', verifyJWT, async(req, res) =>{
+//     const email = req.params.email;
+//     const filter = {email: email};
+//     const query = {paymentStatus: 'true'};
+//     const sortOptions = { createAt: -1};
+//     const result = await paymentCollection.find(filter, query).sort(sortOptions).toArray();
+//     res.send(result);
+// })
+app.get('/payments/:email', verifyJWT, async (req, res) => {
+    try {
+      const email = req.params.email;
+      const filter = { email: email };
+      const query = { paymentStatus: true };
+      const sortOptions = { createdAt: 1 };
+  
+      const result = await paymentCollection
+        .find(filter, query)
+        .sort(sortOptions)
+        .toArray();
+  
+      res.send(result);
+    } catch (error) {
+      res.status(500).send('Internal Server Error');
+    }
+  });
 
 
 
