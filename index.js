@@ -49,6 +49,7 @@ const userCollection = client.db("yogaDb").collection('users');
 const classCollection = client.db('yogaDb').collection('classes');
 const selectedClassCollection = client.db('yogaDb').collection('selectedClasses');
 const paymentCollection = client.db('yogaDb').collection('payments');
+const reviewCollection = client.db('yogaDb').collection('reviews');
 
 // jwt token
 app.post('/jwt', (req, res) => {
@@ -151,6 +152,11 @@ app.patch('/classes/:id', async (req, res) => {
     const result = await classCollection.updateOne(filter, updateDoc);
     res.send(result);
 })
+// review api
+app.get('/reviews', async(req, res) => {
+    const result = await reviewCollection.find().toArray();
+    res.send(result);
+  })
 // status deny
 app.patch('/class/:id', async (req, res) => {
     const id = req.params.id;
